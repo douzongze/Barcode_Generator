@@ -28,7 +28,7 @@ QR_COLOR = "#FFFFFF"
 
 # ==================== 软件信息 ====================
 
-APP_VERSION = "v0.2.0"
+APP_VERSION = "v0.3.0"
 APP_AUTHOR = "douzongze"
 GITHUB_URL = "https://github.com/douzongze/QR_Code_Generator"
 
