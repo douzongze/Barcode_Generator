@@ -1,40 +1,36 @@
 import tkinter as tk
-import qrcode
-from PIL import ImageTk
 from tkinter import filedialog, messagebox
 
+import customtkinter as ctk
+import qrcode
 
-# ==============================
-# 创建窗口
-# ==============================
 
-window = tk.Tk()
+# UI 设置
+ctk.set_appearance_mode("light")
+ctk.set_default_color_theme("blue")
 
+BG_COLOR = "#F5F7FA"
+CARD_COLOR = "#FFFFFF"
+TEXT_COLOR = "#1F2937"
+SECONDARY_TEXT = "#6B7280"
+
+
+window = ctk.CTk()
 window.title("二维码生成器")
 window.geometry("960x540")
 window.resizable(False, False)
-
-# 设置背景颜色
-window.configure(bg="#f5f5f5")
+window.configure(fg_color=BG_COLOR)
 
 
-# ==============================
-# 当前二维码
-# ==============================
-
+# 当前生成的二维码
 current_qr = None
 
-
-# ==============================
-# 生成二维码
-# ==============================
 
 def generate_qrcode():
     global current_qr
 
-    text = entry.get()
+    text = entry.get().strip()
 
-    # 判断输入是否为空
     if text == "":
         messagebox.showwarning(
             "提示",
@@ -42,29 +38,25 @@ def generate_qrcode():
         )
         return
 
-    # 生成二维码
     current_qr = qrcode.make(text)
 
-    # 调整预览大小
-    img = current_qr.resize((300, 300))
+    preview_image = current_qr.resize((300, 300))
 
-    # 转换成 Tkinter 可以显示的图片
-    qr_image = ImageTk.PhotoImage(img)
+    qr_image = ctk.CTkImage(
+        light_image=preview_image,
+        dark_image=preview_image,
+        size=(300, 300)
+    )
 
-    # 显示二维码
-    qr_label.config(image=qr_image)
+    qr_label.configure(
+        image=qr_image,
+        text=""
+    )
 
-    # 防止图片被 Python 自动删除
     qr_label.image = qr_image
 
 
-# ==============================
-# 保存二维码
-# ==============================
-
 def save_qrcode():
-
-    # 如果还没有生成二维码
     if current_qr is None:
         messagebox.showwarning(
             "提示",
@@ -72,7 +64,6 @@ def save_qrcode():
         )
         return
 
-    # 打开保存窗口
     file_path = filedialog.asksaveasfilename(
         title="保存二维码",
         defaultextension=".png",
@@ -82,218 +73,231 @@ def save_qrcode():
         ]
     )
 
-    # 用户选择了保存位置
     if file_path:
-
         current_qr.save(file_path)
 
         messagebox.showinfo(
-            "成功",
+            "保存成功",
             "二维码保存成功！"
         )
 
 
-# ==============================
-# 清空
-# ==============================
-
 def clear_all():
     global current_qr
 
-    # 清空输入框
     entry.delete(0, tk.END)
 
-    # 清除二维码
-    qr_label.config(image="")
+    qr_label.configure(
+        image=None,
+        text="二维码将在这里显示"
+    )
 
     qr_label.image = None
-
-    # 清除当前二维码
     current_qr = None
 
 
-# ==============================
 # 标题
-# ==============================
-
-title = tk.Label(
+title = ctk.CTkLabel(
     window,
     text="二维码生成器",
-    font=("Microsoft YaHei", 26, "bold"),
-    bg="#f5f5f5"
+    font=("Microsoft YaHei", 28, "bold"),
+    text_color=TEXT_COLOR
 )
 
-title.pack(pady=25)
+title.pack(
+    pady=(25, 3)
+)
 
 
-# ==============================
-# 主区域
-# ==============================
-
-main_frame = tk.Frame(
+subtitle = ctk.CTkLabel(
     window,
-    bg="#f5f5f5"
+    text="输入内容，快速生成二维码",
+    font=("Microsoft YaHei", 14),
+    text_color=SECONDARY_TEXT
+)
+
+subtitle.pack(
+    pady=(0, 15)
+)
+
+
+# 左右布局
+main_frame = ctk.CTkFrame(
+    window,
+    corner_radius=20,
+    fg_color=BG_COLOR
 )
 
 main_frame.pack(
     fill="both",
     expand=True,
-    padx=60,
-    pady=10
+    padx=40,
+    pady=5
 )
 
 
-# ==============================
-# 左侧区域
-# ==============================
-
-left_frame = tk.Frame(
+left_frame = ctk.CTkFrame(
     main_frame,
-    bg="#f5f5f5"
+    corner_radius=20,
+    fg_color=CARD_COLOR
 )
 
 left_frame.pack(
     side="left",
     fill="both",
-    expand=True
+    expand=True,
+    padx=(0, 10),
+    pady=5
 )
 
 
-# ==============================
-# 右侧区域
-# ==============================
-
-right_frame = tk.Frame(
+right_frame = ctk.CTkFrame(
     main_frame,
-    bg="#f5f5f5"
+    corner_radius=20,
+    fg_color=CARD_COLOR
 )
 
 right_frame.pack(
     side="right",
     fill="both",
-    expand=True
+    expand=True,
+    padx=(10, 0),
+    pady=5
 )
 
 
-# ==============================
-# 输入提示
-# ==============================
-
-label = tk.Label(
+# 输入区域
+input_label = ctk.CTkLabel(
     left_frame,
-    text="输入文字或网址",
-    font=("Microsoft YaHei", 13),
-    bg="#f5f5f5"
+    text="输入内容",
+    font=("Microsoft YaHei", 18, "bold"),
+    text_color=TEXT_COLOR
 )
 
-label.pack(pady=10)
+input_label.pack(
+    pady=(30, 10)
+)
 
 
-# ==============================
-# 输入框
-# ==============================
-
-entry = tk.Entry(
+entry = ctk.CTkEntry(
     left_frame,
-    width=35,
-    font=("Microsoft YaHei", 12),
-    relief="solid",
-    bd=1
+    width=320,
+    height=48,
+    corner_radius=10,
+    placeholder_text="例如：https://github.com",
+    font=("Microsoft YaHei", 13)
 )
 
 entry.pack(
-    pady=10,
-    ipady=8
+    pady=10
 )
 
 
-# ==============================
-# 生成二维码按钮
-# ==============================
-
-generate_button = tk.Button(
+generate_button = ctk.CTkButton(
     left_frame,
     text="生成二维码",
-    font=("Microsoft YaHei", 12, "bold"),
-    width=18,
-    relief="flat",
+    width=220,
+    height=45,
+    corner_radius=10,
+    font=("Microsoft YaHei", 14, "bold"),
     command=generate_qrcode
 )
 
 generate_button.pack(
-    pady=15,
-    ipady=6
+    pady=(25, 10)
 )
 
 
-# ==============================
-# 保存二维码按钮
-# ==============================
-
-save_button = tk.Button(
+save_button = ctk.CTkButton(
     left_frame,
     text="保存二维码",
-    font=("Microsoft YaHei", 12),
-    width=18,
-    relief="flat",
+    width=220,
+    height=45,
+    corner_radius=10,
+    font=("Microsoft YaHei", 14),
     command=save_qrcode
 )
 
 save_button.pack(
-    pady=5,
-    ipady=6
+    pady=10
 )
 
 
-# ==============================
-# 清空按钮
-# ==============================
-
-clear_button = tk.Button(
+clear_button = ctk.CTkButton(
     left_frame,
     text="清空",
-    font=("Microsoft YaHei", 12),
-    width=18,
-    relief="flat",
+    width=220,
+    height=45,
+    corner_radius=10,
+    font=("Microsoft YaHei", 14),
     command=clear_all
 )
 
 clear_button.pack(
-    pady=5,
-    ipady=6
+    pady=10
 )
 
 
-# ==============================
-# 二维码预览标题
-# ==============================
-
-preview_label = tk.Label(
+# 二维码预览
+preview_title = ctk.CTkLabel(
     right_frame,
     text="二维码预览",
-    font=("Microsoft YaHei", 16, "bold"),
-    bg="#f5f5f5"
+    font=("Microsoft YaHei", 18, "bold"),
+    text_color=TEXT_COLOR
 )
 
-preview_label.pack(pady=10)
+preview_title.pack(
+    pady=(25, 10)
+)
 
 
-# ==============================
-# 二维码显示区域
-# ==============================
-
-qr_label = tk.Label(
+qr_container = ctk.CTkFrame(
     right_frame,
-    bg="white",
-    width=320,
-    height=320
+    width=340,
+    height=340,
+    corner_radius=15,
+    fg_color="#FFFFFF"
 )
 
-qr_label.pack(pady=5)
+qr_container.pack(
+    pady=5
+)
+
+qr_container.pack_propagate(False)
 
 
-# ==============================
-# 启动程序
-# ==============================
+qr_label = ctk.CTkLabel(
+    qr_container,
+    text="二维码将在这里显示",
+    width=300,
+    height=300,
+    text_color=SECONDARY_TEXT,
+    font=("Microsoft YaHei", 13)
+)
+
+qr_label.pack(
+    expand=True
+)
+
+
+# 版本号
+version_label = ctk.CTkLabel(
+    window,
+    text="v0.1.0",
+    font=("Microsoft YaHei", 11),
+    text_color=SECONDARY_TEXT
+)
+
+version_label.pack(
+    pady=(0, 5)
+)
+
+
+# 回车生成二维码
+window.bind(
+    "<Return>",
+    lambda event: generate_qrcode()
+)
+
 
 window.mainloop()
