@@ -10,7 +10,7 @@
 
 ## 程序截图
 
-[程序截图](screenshot.png)
+![程序截图](screenshot.png)
 
 ## 当前版本：
 **v1.0.0**
