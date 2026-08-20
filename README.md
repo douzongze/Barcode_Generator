@@ -1,4 +1,4 @@
-# QRCodeGenerator
+# Barcode Generator
 
 条码生成器
 
