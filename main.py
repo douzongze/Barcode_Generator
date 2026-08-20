@@ -30,7 +30,7 @@ QR_COLOR = "#FFFFFF"
 
 APP_VERSION = "v0.3.0"
 APP_AUTHOR = "douzongze"
-GITHUB_URL = "https://github.com/douzongze/QR_Code_Generator"
+GITHUB_URL = "https://github.com/douzongze/Barcode_Generator"
 
 
 # ==================== 主窗口 ====================
