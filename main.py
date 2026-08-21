@@ -6,6 +6,7 @@ import os
 import sys
 
 import customtkinter as ctk
+
 import qrcode
 import barcode
 
@@ -13,13 +14,17 @@ from barcode.writer import ImageWriter
 from PIL import Image
 
 
-# ==================== 基础设置 ====================
+# ==================================================
+# 基础设置
+# ==================================================
 
 ctk.set_appearance_mode("light")
 ctk.set_default_color_theme("blue")
 
 
-# ==================== 颜色 ====================
+# ==================================================
+# 颜色
+# ==================================================
 
 BG_COLOR = (
     "#F5F7FA",
@@ -55,9 +60,11 @@ IMAGE_BG = "#FFFFFF"
 
 
 
-# ==================== 软件信息 ====================
+# ==================================================
+# 软件信息
+# ==================================================
 
-APP_VERSION = "v0.5.0"
+APP_VERSION = "v0.6.0"
 
 APP_AUTHOR = "douzongze"
 
@@ -67,7 +74,9 @@ GITHUB_URL = (
 
 
 
-# ==================== 资源路径 ====================
+# ==================================================
+# 资源路径
+# ==================================================
 
 def resource_path(relative):
 
@@ -86,22 +95,28 @@ def resource_path(relative):
 
 
 
-# ==================== 主窗口 ====================
+# ==================================================
+# 主窗口
+# ==================================================
 
 window = ctk.CTk()
+
 
 window.title(
     "Barcode Generator"
 )
 
+
 window.geometry(
     "1050x650"
 )
+
 
 window.minsize(
     850,
     600
 )
+
 
 window.configure(
     fg_color=BG_COLOR
@@ -109,78 +124,136 @@ window.configure(
 
 
 
-# ==================== 全局变量 ====================
+
+# ==================================================
+# 全局变量
+# ==================================================
 
 current_image = None
+
+
+# 修复 pyimage1
+preview_image_ref = None
+
+
+# 保存 PIL 图片引用
+preview_pil_ref = None
+
+
 
 current_appearance = "浅色"
 
 
+generate_shortcut = "<Control-Return>"
 
 
 
-# ==================== 图片预览 ====================
+
+# ==================================================
+# 图片预览（修复版）
+# ==================================================
 
 def show_preview(image):
 
-    preview_width = 360
-    preview_height = 360
+    global preview_image_ref
+    global preview_pil_ref
 
 
-    preview = image.copy()
+    try:
+
+        preview = image.copy()
 
 
-    if preview.width == preview.height:
+        max_width = 360
+
+        max_height = 360
+
 
         preview.thumbnail(
+
             (
-                preview_width,
-                preview_height
+                max_width,
+                max_height
             ),
+
             Image.Resampling.LANCZOS
+
         )
 
 
-    else:
+        preview_pil_ref = preview
 
-        preview.thumbnail(
-            (
-                preview_width,
-                250
-            ),
-            Image.Resampling.LANCZOS
+
+
+        preview_image_ref = ctk.CTkImage(
+
+            light_image=preview_pil_ref,
+
+            dark_image=preview_pil_ref,
+
+            size=preview_pil_ref.size
+
         )
 
 
 
-    img = ctk.CTkImage(
+        qr_label.configure(
 
-        light_image=preview,
+            image=preview_image_ref,
 
-        dark_image=preview,
+            text=""
 
-        size=preview.size
+        )
 
-    )
+
+        qr_label.update()
+
+
+
+    except Exception as e:
+
+        print(
+            "Preview Error:",
+            e
+        )
+
+
+
+
+
+# ==================================================
+# 清除预览
+# ==================================================
+
+def clear_preview():
+
+    global preview_image_ref
+    global preview_pil_ref
+
+
+    preview_image_ref = None
+
+    preview_pil_ref = None
+
 
 
     qr_label.configure(
 
-        image=img,
+        image=None,
 
-        text=""
+        text="预览区域"
 
     )
 
 
-    qr_label.image = img
+    qr_label.update()
 
 
 
 
-
-
-# ==================== 二维码生成 ====================
+# ==================================================
+# 二维码生成
+# ==================================================
 
 def generate_qrcode():
 
@@ -190,11 +263,14 @@ def generate_qrcode():
     text = entry.get().strip()
 
 
-    if text == "":
+    if not text:
 
         messagebox.showwarning(
+
             "提示",
+
             "请输入内容！"
+
         )
 
         return
@@ -230,58 +306,52 @@ def generate_qrcode():
     show_preview(
         current_image
     )
-
-
-
-
-
-
-
-# ==================== 条形码生成 ====================
+# ==================================================
+# 条形码生成
+# ==================================================
 
 def generate_barcode():
 
     global current_image
 
 
-
     text = entry.get().strip()
 
 
-
-    if text == "":
+    if not text:
 
         messagebox.showwarning(
+
             "提示",
+
             "请输入条形码内容！"
+
         )
 
         return
 
 
 
+    barcode_types = {
 
+        "Code128": "code128",
 
-    types = {
+        "EAN-13": "ean13",
 
-        "Code128":
-        "code128",
+        "Code39": "code39",
 
-        "EAN-13":
-        "ean13",
-
-        "Code39":
-        "code39",
-
-        "UPC":
-        "upc"
+        "UPC": "upc"
 
     }
 
 
 
-
     try:
+
+        name = barcode_types[
+            barcode_type_menu.get()
+        ]
+
 
 
         temp = tempfile.NamedTemporaryFile(
@@ -292,13 +362,14 @@ def generate_barcode():
 
         )
 
+
         temp.close()
 
 
 
         filename = barcode.get(
 
-            types[barcode_type_menu.get()],
+            name,
 
             text,
 
@@ -313,29 +384,43 @@ def generate_barcode():
 
 
         image = Image.open(
+
             filename
+
         ).convert(
+
             "RGB"
+
         )
 
+
+        # 保存副本
 
         current_image = image.copy()
 
 
-        image.close()
+        # 不关闭 image
+        # 防止 PIL 生命周期问题
 
 
 
-        os.remove(
-            filename
-        )
+        try:
+
+            os.remove(
+                filename
+            )
+
+        except:
+
+            pass
 
 
 
         show_preview(
-            current_image
-        )
 
+            current_image
+
+        )
 
 
 
@@ -354,7 +439,9 @@ def generate_barcode():
 
 
 
-# ==================== 总生成 ====================
+# ==================================================
+# 总生成
+# ==================================================
 
 def generate():
 
@@ -367,18 +454,31 @@ def generate():
     else:
 
         generate_barcode()
-# ==================== 保存图片 ====================
+
+
+
+
+
+
+# ==================================================
+# 保存图片
+# ==================================================
 
 def save_image():
+
 
     if current_image is None:
 
         messagebox.showwarning(
+
             "提示",
+
             "请先生成图片！"
+
         )
 
         return
+
 
 
 
@@ -390,9 +490,15 @@ def save_image():
 
         filetypes=[
 
-            ("PNG 图片", "*.png"),
+            (
+                "PNG 图片",
+                "*.png"
+            ),
 
-            ("JPEG 图片", "*.jpg")
+            (
+                "JPEG 图片",
+                "*.jpg"
+            )
 
         ]
 
@@ -404,7 +510,9 @@ def save_image():
 
 
         current_image.save(
+
             file_path
+
         )
 
 
@@ -421,40 +529,38 @@ def save_image():
 
 
 
-# ==================== 清空 ====================
+
+# ==================================================
+# 清空
+# ==================================================
 
 def clear_all():
 
     global current_image
 
 
-    entry.delete(
-        0,
-        tk.END
-    )
-
-
-    qr_label.configure(
-
-        image=None,
-
-        text="预览区域"
-
-    )
-
-
-    qr_label.image = None
-
-
     current_image = None
 
 
+    entry.delete(
+
+        0,
+
+        tk.END
+
+    )
+
+
+    clear_preview()
 
 
 
 
 
-# ==================== 模式切换 ====================
+
+# ==================================================
+# 模式切换
+# ==================================================
 
 def change_mode(choice):
 
@@ -481,7 +587,6 @@ def change_mode(choice):
             text="生成二维码"
 
         )
-
 
 
 
@@ -522,10 +627,205 @@ def change_mode(choice):
 
 
 
-# ==================== 外观设置 ====================
+
+# ==================================================
+# 快捷键显示
+# ==================================================
+
+def format_key(event):
+
+
+    keys = []
+
+
+
+    if event.state & 0x0004:
+
+        keys.append(
+            "Ctrl"
+        )
+
+
+
+    if event.state & 0x0001:
+
+        keys.append(
+            "Shift"
+        )
+
+
+
+    if event.state & 0x0008:
+
+        keys.append(
+            "Alt"
+        )
+
+
+
+    key = event.keysym
+
+
+
+    if key not in (
+
+        "Control_L",
+
+        "Shift_L",
+
+        "Alt_L"
+
+    ):
+
+        keys.append(
+
+            key
+
+        )
+
+
+
+    shortcut = "+".join(keys)
+
+
+
+    shortcut_entry.delete(
+
+        0,
+
+        tk.END
+
+    )
+
+
+    shortcut_entry.insert(
+
+        0,
+
+        shortcut
+
+    )
+
+
+
+    return "break"
+
+
+
+
+
+
+# ==================================================
+# 快捷键转换
+# ==================================================
+
+def convert_shortcut(text):
+
+
+    result = "<"
+
+
+
+    parts = text.split("+")
+
+
+
+    for p in parts[:-1]:
+
+
+        if p == "Ctrl":
+
+            result += "Control-"
+
+
+        elif p == "Shift":
+
+            result += "Shift-"
+
+
+        elif p == "Alt":
+
+            result += "Alt-"
+
+
+
+    result += parts[-1]
+
+    result += ">"
+
+
+    return result
+# ==================================================
+# 应用快捷键
+# ==================================================
+
+def apply_shortcut():
+
+    global generate_shortcut
+
+
+    shortcut = shortcut_entry.get()
+
+
+
+    if not shortcut:
+
+        return
+
+
+
+    try:
+
+        window.unbind_all(
+            "<Control-Return>"
+        )
+
+
+
+        generate_shortcut = shortcut
+
+
+
+        window.bind(
+
+            convert_shortcut(shortcut),
+
+            lambda e: generate()
+
+        )
+
+
+
+        messagebox.showinfo(
+
+            "完成",
+
+            f"快捷键已设置：{shortcut}"
+
+        )
+
+
+    except:
+
+
+        messagebox.showerror(
+
+            "错误",
+
+            "快捷键格式错误"
+
+        )
+
+
+
+
+
+
+# ==================================================
+# 外观设置
+# ==================================================
 
 def change_appearance(choice):
-
 
     global current_appearance
 
@@ -559,11 +859,11 @@ def change_appearance(choice):
 
 
 
-
-# ==================== 设置窗口 ====================
+# ==================================================
+# 设置窗口
+# ==================================================
 
 def open_settings():
-
 
     settings_window = ctk.CTkToplevel(
         window
@@ -576,7 +876,7 @@ def open_settings():
 
 
     settings_window.geometry(
-        "420x300"
+        "430x420"
     )
 
 
@@ -614,12 +914,12 @@ def open_settings():
 
 
     title.pack(
-        pady=(30,20)
+        pady=(25,20)
     )
 
 
 
-    label = ctk.CTkLabel(
+    appearance_label = ctk.CTkLabel(
 
         settings_window,
 
@@ -638,7 +938,7 @@ def open_settings():
     )
 
 
-    label.pack(
+    appearance_label.pack(
         pady=5
     )
 
@@ -682,8 +982,99 @@ def open_settings():
 
 
 
+    shortcut_title = ctk.CTkLabel(
 
-# ==================== 关于窗口 ====================
+        settings_window,
+
+        text="生成快捷键",
+
+        font=(
+
+            "Microsoft YaHei",
+
+            14,
+
+            "bold"
+
+        ),
+
+        text_color=TEXT_COLOR
+
+    )
+
+
+    shortcut_title.pack(
+        pady=(25,5)
+    )
+
+
+
+    global shortcut_entry
+
+
+
+    shortcut_entry = ctk.CTkEntry(
+
+        settings_window,
+
+        width=230,
+
+        height=38,
+
+        corner_radius=8,
+
+        placeholder_text="例如 Ctrl+S"
+
+    )
+
+
+    shortcut_entry.pack(
+        pady=8
+    )
+
+
+
+    shortcut_entry.bind(
+
+        "<KeyPress>",
+
+        format_key
+
+    )
+
+
+
+
+    apply_button = ctk.CTkButton(
+
+        settings_window,
+
+        text="应用快捷键",
+
+        width=230,
+
+        height=42,
+
+        corner_radius=10,
+
+        command=apply_shortcut
+
+    )
+
+
+    apply_button.pack(
+        pady=10
+    )
+
+
+
+
+
+
+
+# ==================================================
+# 关于窗口
+# ==================================================
 
 def open_about():
 
@@ -715,7 +1106,6 @@ def open_about():
 
 
 
-
     title = ctk.CTkLabel(
 
         about_window,
@@ -740,7 +1130,6 @@ def open_about():
     title.pack(
         pady=(30,20)
     )
-
 
 
 
@@ -769,8 +1158,6 @@ def open_about():
 
 
 
-
-
     author = ctk.CTkLabel(
 
         about_window,
@@ -796,15 +1183,13 @@ def open_about():
 
 
 
-
-
     feature = ctk.CTkLabel(
 
         about_window,
 
         text=(
 
-            "支持功能：\n"
+            "支持功能：\n\n"
 
             "✓ QR Code\n"
 
@@ -839,8 +1224,6 @@ def open_about():
 
 
 
-
-
     github_button = ctk.CTkButton(
 
         about_window,
@@ -849,9 +1232,9 @@ def open_about():
 
         width=230,
 
-        height=40,
+        height=42,
 
-        corner_radius=8,
+        corner_radius=10,
 
         command=lambda:
 
@@ -865,15 +1248,9 @@ def open_about():
     github_button.pack(
         pady=10
     )
-
-
-
-
-
-
-
-
-# ==================== 顶部工具栏 ====================
+# ==================================================
+# 顶部工具栏
+# ==================================================
 
 top_bar = ctk.CTkFrame(
 
@@ -906,7 +1283,6 @@ top_bar.pack_propagate(
 
 
 
-
 about_button = ctk.CTkButton(
 
     top_bar,
@@ -931,10 +1307,12 @@ about_button = ctk.CTkButton(
 
 
 about_button.pack(
-    side="right",
-    padx=5
-)
 
+    side="right",
+
+    padx=5
+
+)
 
 
 
@@ -963,9 +1341,18 @@ settings_button = ctk.CTkButton(
 
 
 settings_button.pack(
+
     side="right"
+
 )
-# ==================== 软件标题 ====================
+
+
+
+
+
+# ==================================================
+# 标题
+# ==================================================
 
 title_label = ctk.CTkLabel(
 
@@ -991,8 +1378,6 @@ title_label = ctk.CTkLabel(
 title_label.pack(
     pady=(5,2)
 )
-
-
 
 
 
@@ -1023,8 +1408,9 @@ subtitle_label.pack(
 
 
 
-
-# ==================== 主区域 ====================
+# ==================================================
+# 主区域
+# ==================================================
 
 main_frame = ctk.CTkFrame(
 
@@ -1050,7 +1436,6 @@ main_frame.pack(
 )
 
 
-
 main_frame.grid_columnconfigure(
     0,
     weight=1
@@ -1070,10 +1455,6 @@ main_frame.grid_rowconfigure(
 
 
 
-
-
-
-# ==================== 左侧卡片 ====================
 
 left_frame = ctk.CTkFrame(
 
@@ -1102,10 +1483,6 @@ left_frame.grid(
 
 
 
-
-
-
-# ==================== 右侧卡片 ====================
 
 right_frame = ctk.CTkFrame(
 
@@ -1136,8 +1513,9 @@ right_frame.grid(
 
 
 
-
-# ==================== 左侧内容 ====================
+# ==================================================
+# 左侧
+# ==================================================
 
 input_title = ctk.CTkLabel(
 
@@ -1166,8 +1544,6 @@ input_title.pack(
 
 
 
-
-
 mode_title = ctk.CTkLabel(
 
     left_frame,
@@ -1190,7 +1566,6 @@ mode_title = ctk.CTkLabel(
 mode_title.pack(
     pady=5
 )
-
 
 
 
@@ -1231,9 +1606,6 @@ mode_menu.pack(
 
 
 
-
-# ==================== 条码类型 ====================
-
 barcode_type_label = ctk.CTkLabel(
 
     left_frame,
@@ -1246,12 +1618,9 @@ barcode_type_label = ctk.CTkLabel(
 
         14
 
-    ),
-
-    text_color=TEXT_COLOR
+    )
 
 )
-
 
 
 barcode_type_menu = ctk.CTkOptionMenu(
@@ -1284,9 +1653,6 @@ barcode_type_menu.set(
 )
 
 
-
-# 默认隐藏
-
 barcode_type_label.pack_forget()
 
 barcode_type_menu.pack_forget()
@@ -1294,9 +1660,6 @@ barcode_type_menu.pack_forget()
 
 
 
-
-
-# ==================== 输入框 ====================
 
 entry = ctk.CTkEntry(
 
@@ -1308,26 +1671,12 @@ entry = ctk.CTkEntry(
 
     corner_radius=10,
 
-    placeholder_text="输入文字或网址",
-
-    font=(
-
-        "Microsoft YaHei",
-
-        13
-
-    ),
-
-    fg_color=INPUT_COLOR,
-
-    text_color=TEXT_COLOR
+    placeholder_text="输入文字或网址"
 
 )
 
 
 entry.pack(
-
-    padx=35,
 
     pady=15
 
@@ -1336,9 +1685,6 @@ entry.pack(
 
 
 
-
-
-# ==================== 按钮 ====================
 
 generate_button = ctk.CTkButton(
 
@@ -1373,8 +1719,6 @@ generate_button.pack(
 
 
 
-
-
 save_button = ctk.CTkButton(
 
     left_frame,
@@ -1395,8 +1739,6 @@ save_button = ctk.CTkButton(
 save_button.pack(
     pady=8
 )
-
-
 
 
 
@@ -1426,7 +1768,9 @@ clear_button.pack(
 
 
 
-# ==================== 右侧预览 ====================
+# ==================================================
+# 右侧预览
+# ==================================================
 
 preview_title = ctk.CTkLabel(
 
@@ -1442,9 +1786,7 @@ preview_title = ctk.CTkLabel(
 
         "bold"
 
-    ),
-
-    text_color=TEXT_COLOR
+    )
 
 )
 
@@ -1452,9 +1794,6 @@ preview_title = ctk.CTkLabel(
 preview_title.pack(
     pady=(25,10)
 )
-
-
-
 
 
 
@@ -1491,8 +1830,6 @@ preview_box.pack_propagate(
 
 
 
-
-
 qr_label = ctk.CTkLabel(
 
     preview_box,
@@ -1501,23 +1838,7 @@ qr_label = ctk.CTkLabel(
 
     width=360,
 
-    height=360,
-
-    font=(
-
-        "Microsoft YaHei",
-
-        13
-
-    ),
-
-    text_color=(
-
-        "#6B7280",
-
-        "#6B7280"
-
-    )
+    height=360
 
 )
 
@@ -1536,14 +1857,15 @@ qr_label.place(
 
 
 
-
-# ==================== 快捷键 ====================
+# ==================================================
+# 默认快捷键
+# ==================================================
 
 window.bind(
 
-    "<Return>",
+    "<Control-Return>",
 
-    lambda event: generate()
+    lambda e: generate()
 
 )
 
@@ -1551,8 +1873,9 @@ window.bind(
 
 
 
-
-# ==================== 关闭确认 ====================
+# ==================================================
+# 退出
+# ==================================================
 
 def close_window():
 
@@ -1580,8 +1903,9 @@ window.protocol(
 
 
 
-
-# ==================== 启动 ====================
+# ==================================================
+# 启动
+# ==================================================
 
 if __name__ == "__main__":
 
