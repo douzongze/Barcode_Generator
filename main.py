@@ -1,6 +1,9 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
 import webbrowser
+import tempfile
+import os
+import sys
 
 import customtkinter as ctk
 import qrcode
@@ -10,12 +13,10 @@ from barcode.writer import ImageWriter
 from PIL import Image
 
 
-
 # ==================== 基础设置 ====================
 
 ctk.set_appearance_mode("light")
 ctk.set_default_color_theme("blue")
-
 
 
 # ==================== 颜色 ====================
@@ -50,15 +51,13 @@ HOVER_COLOR = (
     "#3F3F46"
 )
 
-
-
 IMAGE_BG = "#FFFFFF"
 
 
 
 # ==================== 软件信息 ====================
 
-APP_VERSION = "v0.4.0"
+APP_VERSION = "v0.5.0"
 
 APP_AUTHOR = "douzongze"
 
@@ -68,26 +67,41 @@ GITHUB_URL = (
 
 
 
+# ==================== 资源路径 ====================
+
+def resource_path(relative):
+
+    try:
+        base_path = sys._MEIPASS
+
+    except Exception:
+
+        base_path = os.path.abspath(".")
+
+    return os.path.join(
+        base_path,
+        relative
+    )
+
+
+
+
 # ==================== 主窗口 ====================
 
 window = ctk.CTk()
-
 
 window.title(
     "Barcode Generator"
 )
 
-
 window.geometry(
-    "1000x600"
+    "1050x650"
 )
-
 
 window.minsize(
-    800,
-    550
+    850,
+    600
 )
-
 
 window.configure(
     fg_color=BG_COLOR
@@ -110,55 +124,32 @@ current_appearance = "浅色"
 def show_preview(image):
 
     preview_width = 360
-
     preview_height = 360
-
 
 
     preview = image.copy()
 
 
-
-    # 二维码
-
-    if image.width == image.height:
-
+    if preview.width == preview.height:
 
         preview.thumbnail(
-
             (
-
                 preview_width,
-
                 preview_height
-
             ),
-
             Image.Resampling.LANCZOS
-
         )
 
-
-
-    # 条形码
 
     else:
 
-
         preview.thumbnail(
-
             (
-
                 preview_width,
-
-                220
-
+                250
             ),
-
             Image.Resampling.LANCZOS
-
         )
-
 
 
 
@@ -173,7 +164,6 @@ def show_preview(image):
     )
 
 
-
     qr_label.configure(
 
         image=img,
@@ -181,7 +171,6 @@ def show_preview(image):
         text=""
 
     )
-
 
 
     qr_label.image = img
@@ -195,35 +184,26 @@ def show_preview(image):
 
 def generate_qrcode():
 
-
     global current_image
-
 
 
     text = entry.get().strip()
 
 
-
     if text == "":
 
-
         messagebox.showwarning(
-
             "提示",
-
             "请输入内容！"
-
         )
 
         return
 
 
 
-
-
     qr = qrcode.QRCode(
 
-        version=1,
+        version=None,
 
         error_correction=qrcode.constants.ERROR_CORRECT_M,
 
@@ -234,27 +214,23 @@ def generate_qrcode():
     )
 
 
-
     qr.add_data(text)
 
 
     qr.make(
-
         fit=True
-
     )
 
 
-
-    current_image = qr.make_image()
-
+    current_image = qr.make_image().convert(
+        "RGB"
+    )
 
 
     show_preview(
-
         current_image
-
     )
+
 
 
 
@@ -264,7 +240,6 @@ def generate_qrcode():
 # ==================== 条形码生成 ====================
 
 def generate_barcode():
-
 
     global current_image
 
@@ -276,13 +251,9 @@ def generate_barcode():
 
     if text == "":
 
-
         messagebox.showwarning(
-
             "提示",
-
             "请输入条形码内容！"
-
         )
 
         return
@@ -290,36 +261,42 @@ def generate_barcode():
 
 
 
+
     types = {
 
-
         "Code128":
-
         "code128",
 
-
         "EAN-13":
-
         "ean13",
 
-
         "Code39":
-
         "code39",
 
-
         "UPC":
-
         "upc"
 
     }
 
 
 
+
     try:
 
 
-        code = barcode.get(
+        temp = tempfile.NamedTemporaryFile(
+
+            suffix=".png",
+
+            delete=False
+
+        )
+
+        temp.close()
+
+
+
+        filename = barcode.get(
 
             types[barcode_type_menu.get()],
 
@@ -327,39 +304,38 @@ def generate_barcode():
 
             writer=ImageWriter()
 
-        )
+        ).save(
 
-
-
-        filename = code.save(
-
-            "barcode_temp"
+            temp.name[:-4]
 
         )
 
 
 
         image = Image.open(
-
             filename
-
+        ).convert(
+            "RGB"
         )
 
 
-
         current_image = image.copy()
-
 
 
         image.close()
 
 
 
-        show_preview(
-
-            current_image
-
+        os.remove(
+            filename
         )
+
+
+
+        show_preview(
+            current_image
+        )
+
 
 
 
@@ -378,7 +354,6 @@ def generate_barcode():
 
 
 
-
 # ==================== 总生成 ====================
 
 def generate():
@@ -386,13 +361,10 @@ def generate():
 
     if mode_menu.get() == "二维码":
 
-
         generate_qrcode()
 
 
-
     else:
-
 
         generate_barcode()
 # ==================== 保存图片 ====================
@@ -402,11 +374,8 @@ def save_image():
     if current_image is None:
 
         messagebox.showwarning(
-
             "提示",
-
             "请先生成图片！"
-
         )
 
         return
@@ -430,13 +399,12 @@ def save_image():
     )
 
 
+
     if file_path:
 
 
         current_image.save(
-
             file_path
-
         )
 
 
@@ -452,6 +420,7 @@ def save_image():
 
 
 
+
 # ==================== 清空 ====================
 
 def clear_all():
@@ -459,15 +428,10 @@ def clear_all():
     global current_image
 
 
-
     entry.delete(
-
         0,
-
         tk.END
-
     )
-
 
 
     qr_label.configure(
@@ -482,8 +446,8 @@ def clear_all():
     qr_label.image = None
 
 
-
     current_image = None
+
 
 
 
@@ -499,7 +463,6 @@ def change_mode(choice):
 
 
         barcode_type_label.pack_forget()
-
 
         barcode_type_menu.pack_forget()
 
@@ -518,6 +481,7 @@ def change_mode(choice):
             text="生成二维码"
 
         )
+
 
 
 
@@ -562,8 +526,8 @@ def change_mode(choice):
 
 def change_appearance(choice):
 
-    global current_appearance
 
+    global current_appearance
 
 
     current_appearance = choice
@@ -572,34 +536,24 @@ def change_appearance(choice):
 
     if choice == "浅色":
 
-
         ctk.set_appearance_mode(
-
             "light"
-
         )
-
 
 
     elif choice == "深色":
 
-
         ctk.set_appearance_mode(
-
             "dark"
-
         )
-
 
 
     else:
 
-
         ctk.set_appearance_mode(
-
             "system"
-
         )
+
 
 
 
@@ -612,41 +566,29 @@ def open_settings():
 
 
     settings_window = ctk.CTkToplevel(
-
         window
-
     )
 
 
     settings_window.title(
-
         "设置"
-
     )
 
 
     settings_window.geometry(
-
         "420x300"
-
     )
 
 
     settings_window.resizable(
-
         False,
-
         False
-
     )
 
 
     settings_window.transient(
-
         window
-
     )
-
 
 
 
@@ -672,16 +614,12 @@ def open_settings():
 
 
     title.pack(
-
         pady=(30,20)
-
     )
 
 
 
-
-
-    appearance_label = ctk.CTkLabel(
+    label = ctk.CTkLabel(
 
         settings_window,
 
@@ -700,13 +638,9 @@ def open_settings():
     )
 
 
-    appearance_label.pack(
-
+    label.pack(
         pady=5
-
     )
-
-
 
 
 
@@ -735,61 +669,49 @@ def open_settings():
     )
 
 
-
     appearance_menu.set(
-
         current_appearance
-
     )
-
 
 
     appearance_menu.pack(
-
         pady=10
-
     )
+
+
+
+
+
+
 # ==================== 关于窗口 ====================
 
 def open_about():
 
 
     about_window = ctk.CTkToplevel(
-
         window
-
     )
 
 
     about_window.title(
-
         "关于"
-
     )
 
 
     about_window.geometry(
-
-        "460x340"
-
+        "460x400"
     )
 
 
     about_window.resizable(
-
         False,
-
         False
-
     )
 
 
     about_window.transient(
-
         window
-
     )
-
 
 
 
@@ -816,11 +738,8 @@ def open_about():
 
 
     title.pack(
-
         pady=(30,20)
-
     )
-
 
 
 
@@ -845,9 +764,7 @@ def open_about():
 
 
     version.pack(
-
         pady=5
-
     )
 
 
@@ -874,9 +791,50 @@ def open_about():
 
 
     author.pack(
-
         pady=5
+    )
 
+
+
+
+
+    feature = ctk.CTkLabel(
+
+        about_window,
+
+        text=(
+
+            "支持功能：\n"
+
+            "✓ QR Code\n"
+
+            "✓ Code128\n"
+
+            "✓ EAN-13\n"
+
+            "✓ Code39\n"
+
+            "✓ UPC"
+
+        ),
+
+        font=(
+
+            "Microsoft YaHei",
+
+            13
+
+        ),
+
+        justify="left",
+
+        text_color=SECONDARY_TEXT
+
+    )
+
+
+    feature.pack(
+        pady=15
     )
 
 
@@ -897,20 +855,17 @@ def open_about():
 
         command=lambda:
 
-            webbrowser.open(
-
-                GITHUB_URL
-
-            )
+        webbrowser.open(
+            GITHUB_URL
+        )
 
     )
 
 
     github_button.pack(
-
-        pady=25
-
+        pady=10
     )
+
 
 
 
@@ -945,9 +900,7 @@ top_bar.pack(
 
 
 top_bar.pack_propagate(
-
     False
-
 )
 
 
@@ -978,11 +931,8 @@ about_button = ctk.CTkButton(
 
 
 about_button.pack(
-
     side="right",
-
     padx=5
-
 )
 
 
@@ -1013,16 +963,8 @@ settings_button = ctk.CTkButton(
 
 
 settings_button.pack(
-
     side="right"
-
 )
-
-
-
-
-
-
 # ==================== 软件标题 ====================
 
 title_label = ctk.CTkLabel(
@@ -1047,9 +989,7 @@ title_label = ctk.CTkLabel(
 
 
 title_label.pack(
-
     pady=(5,2)
-
 )
 
 
@@ -1076,9 +1016,7 @@ subtitle_label = ctk.CTkLabel(
 
 
 subtitle_label.pack(
-
     pady=(0,15)
-
 )
 
 
@@ -1113,33 +1051,21 @@ main_frame.pack(
 
 
 
-
-
 main_frame.grid_columnconfigure(
-
     0,
-
     weight=1
-
 )
 
 
 main_frame.grid_columnconfigure(
-
     1,
-
     weight=1
-
 )
-
 
 
 main_frame.grid_rowconfigure(
-
     0,
-
     weight=1
-
 )
 
 
@@ -1179,7 +1105,6 @@ left_frame.grid(
 
 
 
-
 # ==================== 右侧卡片 ====================
 
 right_frame = ctk.CTkFrame(
@@ -1206,6 +1131,12 @@ right_frame.grid(
     pady=5
 
 )
+
+
+
+
+
+
 # ==================== 左侧内容 ====================
 
 input_title = ctk.CTkLabel(
@@ -1230,16 +1161,12 @@ input_title = ctk.CTkLabel(
 
 
 input_title.pack(
-
     pady=(25,10)
-
 )
 
 
 
 
-
-# ==================== 模式选择 ====================
 
 mode_title = ctk.CTkLabel(
 
@@ -1261,10 +1188,10 @@ mode_title = ctk.CTkLabel(
 
 
 mode_title.pack(
-
     pady=5
-
 )
+
+
 
 
 
@@ -1292,23 +1219,20 @@ mode_menu = ctk.CTkOptionMenu(
 
 
 mode_menu.set(
-
     "二维码"
-
 )
 
 
 mode_menu.pack(
-
     pady=5
-
 )
 
 
 
 
 
-# ==================== 条形码类型 ====================
+
+# ==================== 条码类型 ====================
 
 barcode_type_label = ctk.CTkLabel(
 
@@ -1356,16 +1280,17 @@ barcode_type_menu = ctk.CTkOptionMenu(
 
 
 barcode_type_menu.set(
-
     "Code128"
-
 )
 
 
 
+# 默认隐藏
 
+barcode_type_label.pack_forget()
 
-# 默认隐藏条形码选项
+barcode_type_menu.pack_forget()
+
 
 
 
@@ -1412,6 +1337,7 @@ entry.pack(
 
 
 
+
 # ==================== 按钮 ====================
 
 generate_button = ctk.CTkButton(
@@ -1442,9 +1368,7 @@ generate_button = ctk.CTkButton(
 
 
 generate_button.pack(
-
     pady=8
-
 )
 
 
@@ -1469,9 +1393,7 @@ save_button = ctk.CTkButton(
 
 
 save_button.pack(
-
     pady=8
-
 )
 
 
@@ -1496,11 +1418,8 @@ clear_button = ctk.CTkButton(
 
 
 clear_button.pack(
-
     pady=8
-
 )
-
 
 
 
@@ -1531,9 +1450,7 @@ preview_title = ctk.CTkLabel(
 
 
 preview_title.pack(
-
     pady=(25,10)
-
 )
 
 
@@ -1568,9 +1485,7 @@ preview_box.pack(
 
 
 preview_box.pack_propagate(
-
     False
-
 )
 
 
@@ -1622,7 +1537,6 @@ qr_label.place(
 
 
 
-
 # ==================== 快捷键 ====================
 
 window.bind(
@@ -1638,6 +1552,37 @@ window.bind(
 
 
 
+# ==================== 关闭确认 ====================
+
+def close_window():
+
+    if messagebox.askokcancel(
+
+        "退出",
+
+        "确定退出 Barcode Generator？"
+
+    ):
+
+        window.destroy()
+
+
+
+window.protocol(
+
+    "WM_DELETE_WINDOW",
+
+    close_window
+
+)
+
+
+
+
+
+
 # ==================== 启动 ====================
 
-window.mainloop()
+if __name__ == "__main__":
+
+    window.mainloop()
